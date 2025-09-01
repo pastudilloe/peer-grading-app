@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grupos de Clase & Evaluación Anónima entre Pares — Sheets Backend (Sin Descargas)</title>
+  <style>
+    :root{--bg:#0b0f14;--panel:#121822;--muted:#1a2230;--ink:#e8eef7;--ink-dim:#b6c2d4;--accent:#6ea8fe;--ok:#69db7c;--warn:#ffd43b;--err:#ff8787;--shadow:0 10px 25px rgba(0,0,0,.35);}
+    html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;}
+    body{background:linear-gradient(180deg,#0b0f14 0%,#0b0f14 45%,#0f141c 100%);color:var(--ink);}    
+    .wrap{max-width:1100px;margin:24px auto;padding:20px;}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .title{font-weight:800;letter-spacing:.2px;font-size:clamp(18px,2.8vw,26px)}
+    .subtitle{color:var(--ink-dim);font-size:13px}
+    .card{background:var(--panel);border:1px solid #1d2735;border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+    .grid{display:grid;gap:14px}
+    @media(min-width:900px){.grid.cols-2{grid-template-columns:1.1fr .9fr}}
+    h2{font-size:16px;margin:0 0 10px 0}
+    label{display:block;margin:10px 0 6px 2px;color:var(--ink-dim);font-size:13px}
+    input[type="text"], input[type="number"], textarea, select{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #243246;background:#0f1520;color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.03);}
+    input[type="file"]{width:100%;}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .row > *{flex:1}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #28354a;background:linear-gradient(180deg,#182132,#131b28);color:var(--ink);cursor:pointer;text-decoration:none;font-weight:600}
+    .btn.small{padding:8px 10px;border-radius:10px;font-size:13px}
+    .btn.ghost{background:#0f1520}
+    .btn.accent{background:linear-gradient(180deg,#2a59b4,#234b96);border-color:#21458b}
+    .btn.ok{background:linear-gradient(180deg,#2f7f43,#276b39);border-color:#2a6e3f}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#0f1520;border:1px solid #263044;color:var(--ink-dim);font-size:12px}
+    .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+    .group{background:var(--muted);border:1px solid #273245;border-radius:14px;padding:12px}
+    .group h3{margin:.2rem 0 .4rem 0;font-size:14px}
+    .group ul{margin:0;padding-left:18px}
+    .divider{height:1px;background:linear-gradient(90deg,transparent,#223049,transparent);margin:14px 0}
+    .muted{color:var(--ink-dim)}
+    .tag{display:inline-flex;align-items:center;gap:6px;background:#0e1524;border:1px solid #243453;padding:6px 8px;border-radius:10px;font-size:12px;color:var(--ink-dim)}
+    .footer{opacity:.8;font-size:12px;margin-top:18px}
+    .hide{display:none !important}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="title">Grupos de Clase & Evaluación Anónima entre Pares</div>
+        <div class="subtitle"><a href="https://www.usfqdatahub.org" target="_blank">USFQ Data Hub</a></div>
+      </div>
+      <div id="modeBadge" class="pill">Modo: <span id="modeName">Administrador</span></div>
+    </header>
+
+    <div id="adminView" class="grid cols-2">
+      <section class="card">
+        <h2>1) Cargar estudiantes</h2>
+        <div class="muted" style="margin-bottom:8px">Sube un CSV con una columna <span class="mono">name</span> o pega nombres (uno por línea). Los duplicados se eliminan automáticamente.</div>
+        <input id="csvFile" type="file" accept=".csv,.txt" />
+        <label for="namesText">O pega nombres (uno por línea)</label>
+        <textarea id="namesText" rows="6" placeholder="Ada Lovelace\nAlan Turing\n..."></textarea>
+        <div class="row">
+          <button class="btn" id="btnParse">Cargar nombres</button>
+          <div class="tag"><span id="countStudents">0</span> estudiantes cargados</div>
+        </div>
+        <div id="dupeWarn" class="muted hide"></div>
+        <div class="divider"></div>
+        <h2>2) Configurar grupos & escala de notas</h2>
+        <div class="row">
+          <div>
+            <label for="numGroups">Número de grupos (6 o 7)</label>
+            <input id="numGroups" type="number" min="2" max="12" step="1" value="6" />
+          </div>
+          <div>
+            <label for="scoreMin">Nota mínima</label>
+            <input id="scoreMin" type="number" min="0" max="100" value="2" />
+          </div>
+          <div>
+            <label for="scoreMax">Nota máxima</label>
+            <input id="scoreMax" type="number" min="1" max="100" value="7" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="sessionLabel">Etiqueta de sesión (ej. 2025-08-27)</label>
+            <input id="sessionLabel" type="text" placeholder="AAAA-MM-DD" />
+          </div>
+          <div>
+            <label for="keepGraderName">¿Guardar nombre del evaluador en la exportación?</label>
+            <select id="keepGraderName">
+              <option value="yes" selected>Sí (ayuda a deduplicar)</option>
+              <option value="no">No — el docente solo ve un hash</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="endpointUrl">Endpoint de envío (URL del Web App de Apps Script)</label>
+            <input id="endpointUrl" type="text" placeholder="https://script.google.com/macros/s/AKfycb.../exec" />
+          </div>
+          <div>
+            <label for="endpointSecret">Secreto compartido (mismo que en tu script)</label>
+            <input id="endpointSecret" type="text" placeholder="********" />
+          </div>
+        </div>
+        <div class="row">
+          <button id="btnMakeGroups" class="btn accent">Generar grupos aleatorios</button>
+          <button id="btnRandomize" class="btn ghost" disabled>Randomizar de nuevo</button>
+          <button id="btnExportGroups" class="btn ghost" disabled>Exportar grupos a CSV</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3) Compartir enlace para evaluación</h2>
+        <div class="muted">Después de generar grupos, comparte este enlace. Codifica grupos, escala y tu endpoint + secreto, de modo que solo tu hoja reciba los datos. Los estudiantes no pueden ver notas.</div>
+        <label>Enlace para estudiantes</label>
+        <input id="studentLink" type="text" readonly />
+        <div class="row">
+          <button id="btnCopyLink" class="btn small">Copiar enlace</button>
+          <button id="btnKiosk" class="btn small">Abrir evaluación en este dispositivo (kiosco)</button>
+        </div>
+        <div class="divider"></div>
+        <h2>4) Vista previa de grupos</h2>
+        <div id="groupsView" class="groups muted">Aún no hay grupos.</div>
+      </section>
+    </div>
+
+    <div id="voteView" class="card hide">
+      <h2>Evaluación entre pares</h2>
+      <div class="muted">Selecciona tu grupo y tu nombre. Calificarás a cada compañero (no a ti mismo). Tus calificaciones son anónimas para los demás. Los resultados se envían de forma segura; no se descargan archivos.</div>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="selGroup">Mi grupo</label>
+          <select id="selGroup"></select>
+        </div>
+        <div>
+          <label for="selMe">Yo soy</label>
+          <select id="selMe"></select>
+        </div>
+      </div>
+      <div id="gradePanel" class="hide">
+        <div class="divider"></div>
+        <div class="muted" id="scaleInfo"></div>
+        <div id="gradeList" class="grid" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnSubmitVote" class="btn ok">Enviar notas</button>
+          <div class="tag" id="voteStatus">Listo</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="https://www.usfqdatahub.org">USFQ Data Hub</a>
+    </div>
+  </div>
+
+  <script>
+  const $ = (sel)=>document.querySelector(sel);
+  const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
+  function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function csvEscape(v){if(v==null)return '';const s=String(v);return /[",\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;}
+  function toCSV(rows){if(!rows.length)return '';const headers=Object.keys(rows[0]);const head=headers.map(csvEscape).join(',');const body=rows.map(r=>headers.map(h=>csvEscape(r[h])).join(',')).join('\n');return head+'\n'+body+'\n';}
+  function unique(arr){return [...new Set(arr)];}
+  async function readFileAsText(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error);fr.readAsText(file);});}
+  async function shortHash(input){const enc=new TextEncoder();const data=enc.encode(input);const buf=await crypto.subtle.digest('SHA-256',data);const hex=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');return hex.slice(0,12);}  
+
+  let state={students:[],groups:[],config:{scoreMin:2,scoreMax:7,sessionLabel:'',keepGraderName:'yes',endpointUrl:'',endpointSecret:''},sessionId:'',submissions:[]};
+  function updateCounts(){$('#countStudents').textContent=state.students.length;}
+  function renderGroups(){const host=$('#groupsView');if(!state.groups.length){host.textContent='Aún no hay grupos.';return;}host.innerHTML='';const frag=document.createDocumentFragment();for(const g of state.groups){const card=document.createElement('div');card.className='group';const h=document.createElement('h3');h.textContent=`${g.id} · ${g.members.length} estudiantes`;card.appendChild(h);const ul=document.createElement('ul');g.members.forEach(n=>{const li=document.createElement('li');li.textContent=n;ul.appendChild(li);});card.appendChild(ul);frag.appendChild(card);}host.appendChild(frag);}  
+  function assignGroups(names,k){const shuffled=shuffle(names);const groups=Array.from({length:k},(_,i)=>({id:`G${i+1}`,members:[]}));let i=0;for(const n of shuffled){groups[i%k].members.push(n);i++;}return groups;}
+  function ensureConfig(){const k=Math.max(2,Math.min(12,parseInt($('#numGroups').value||'6',10)));const smin=parseInt($('#scoreMin').value||'1',10);const smax=parseInt($('#scoreMax').value||'10',10);const label=($('#sessionLabel').value||'').trim();const keep=$('#keepGraderName').value||'yes';const endpointUrl=($('#endpointUrl').value||'').trim();const endpointSecret=($('#endpointSecret').value||'').trim();if(smax<=smin){alert('La nota máxima debe ser mayor que la mínima.');throw new Error('escala inválida');}state.config={scoreMin:smin,scoreMax:smax,sessionLabel:label,keepGraderName:keep,endpointUrl,endpointSecret};return k;}
+  function makeSessionId(){const ts=new Date().toISOString().replace(/[-:.TZ]/g,'');const rand=Math.random().toString(36).slice(2,8);return `${ts}-${rand}`;}
+  function encodeSession(){const payload={sessionId:state.sessionId,createdAt:new Date().toISOString(),config:state.config,groups:state.groups};const json=JSON.stringify(payload);return encodeURIComponent(btoa(unescape(encodeURIComponent(json))));}
+  function decodeSession(b64){try{const json=decodeURIComponent(escape(atob(decodeURIComponent(b64))));return JSON.parse(json);}catch(e){return null;}}
+  function buildStudentLink(){const url=location.origin+location.pathname+`#mode=vote&data=${encodeSession()}`;$('#studentLink').value=url;}
+
+  $('#btnParse').addEventListener('click',async()=>{let names=[];const f=$('#csvFile').files[0];if(f){const txt=await readFileAsText(f);names=parseNamesFromText(txt);}const pasted=parseNamesFromText($('#namesText').value);names=unique([...(names||[]),...(pasted||[])]).filter(Boolean);state.students=names;updateCounts();$('#dupeWarn').classList.toggle('hide',!!names.length);if(!names.length){$('#dupeWarn').textContent='No se encontraron nombres. Sube un CSV con una columna "name" o pega nombres (uno por línea).';}});
+  function parseNamesFromText(t){if(!t)return [];const lines=t.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!lines.length)return [];const first=lines[0].toLowerCase();const names=[];if(first.includes('name')){for(let i=1;i<lines.length;i++){const cols=lines[i].split(',');if(cols[0])names.push(cols[0].trim());}}else{for(const line of lines){const parts=line.split(',');names.push(parts[0].trim());}}return unique(names).filter(Boolean);}  
+
+  $('#btnMakeGroups').addEventListener('click',()=>{if(!state.students.length){alert('Primero carga los nombres de los estudiantes.');return;}const k=ensureConfig();if(!(k===6||k===7)){if(!confirm('Has seleccionado un número de grupos distinto a 6 o 7. ¿Continuar?'))return;}if(!state.config.endpointUrl || !state.config.endpointSecret){alert('Por favor configura tu Endpoint de envío y Secreto compartido primero.');return;}state.groups=assignGroups(state.students,k);state.sessionId=makeSessionId();renderGroups();updateCounts();$('#btnRandomize').disabled=false;$('#btnExportGroups').disabled=false;buildStudentLink();});
+  $('#btnRandomize').addEventListener('click',()=>{if(!state.students.length){alert('Primero carga los nombres de los estudiantes.');return;}const k=ensureConfig();state.groups=assignGroups(state.students,k);renderGroups();buildStudentLink();});
+  $('#btnExportGroups').addEventListener('click',()=>{if(!state.groups.length)return;const rows=[];for(const g of state.groups){for(const m of g.members){rows.push({sessionId:state.sessionId,sessionLabel:state.config.sessionLabel,group:g.id,student:m});}}const csv=toCSV(rows);const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`grupos_${state.config.sessionLabel||'sesion'}_${state.sessionId}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},0);});
+  $('#btnCopyLink').addEventListener('click',async()=>{const v=$('#studentLink').value;if(!v){alert('Primero genera los grupos.');return;}try{await navigator.clipboard.writeText(v);}catch{}const old=$('#btnCopyLink').textContent;$('#btnCopyLink').textContent='¡Copiado!';setTimeout(()=>$('#btnCopyLink').textContent=old,1200);});
+  $('#btnKiosk').addEventListener('click',()=>{const v=$('#studentLink').value;if(!v){alert('Primero genera los grupos.');return;}location.hash=v.split('#')[1];location.reload();});
+
+  async function enterVoteMode(payload){
+    $('#adminView').classList.add('hide');$('#voteView').classList.remove('hide');$('#modeName').textContent='Estudiante';
+    const groups=payload.groups||[];const cfg=payload.config||{scoreMin:1,scoreMax:10};
+    const selGroup=$('#selGroup');selGroup.innerHTML='';groups.forEach(g=>{const o=document.createElement('option');o.value=g.id;o.textContent=`${g.id} (${g.members.length})`;selGroup.appendChild(o);});
+    function populateNames(){const g=groups.find(x=>x.id===selGroup.value);const me=$('#selMe');me.innerHTML='';(g?.members||[]).forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;me.appendChild(o);});buildGradeForm();}
+    selGroup.addEventListener('change',populateNames);$('#selMe').addEventListener('change',buildGradeForm);populateNames();
+    function buildGradeForm(){const groupId=$('#selGroup').value;const me=$('#selMe').value;const g=groups.find(x=>x.id===groupId);const others=(g?.members||[]).filter(n=>n!==me);$('#gradePanel').classList.remove('hide');$('#scaleInfo').textContent=`Usa la escala ${cfg.scoreMin}–${cfg.scoreMax}.`;const host=$('#gradeList');host.innerHTML='';for(const name of others){const row=document.createElement('div');row.className='row';const label=document.createElement('div');label.textContent=name;label.style.minWidth='220px';const input=document.createElement('input');input.type='number';input.min=cfg.scoreMin;input.max=cfg.scoreMax;input.step='1';input.placeholder=cfg.scoreMin;input.dataset.name=name;input.required=true;row.appendChild(label);row.appendChild(input);host.appendChild(row);} }
+    
+    $('#btnSubmitVote').addEventListener('click',async()=>{
+      const groupId=$('#selGroup').value;const me=$('#selMe').value;const cfg=payload.config||{};
+      if(!groupId||!me){alert('Selecciona tu grupo y tu nombre.');return;}
+      const inputs=Array.from($('#gradeList').querySelectorAll('input[type="number"]'));
+      if(!inputs.length){alert('No hay compañeros para calificar.');return;}
+      const scores=[];const min=(cfg.scoreMin??1),max=(cfg.scoreMax??10);
+      for(const inp of inputs){const v=parseInt(inp.value||'',10);if(Number.isNaN(v)||v<min||v>max){alert(`Ingresa un número entre ${min}–${max} para ${inp.dataset.name}.`);return;}scores.push({name:inp.dataset.name,grade:v});}
+      $('#voteStatus').textContent='Enviando…';
+      const graderHash=await shortHash(payload.sessionId+'|'+me);
+      const keepName=(payload.config?.keepGraderName||'yes')==='yes';
+      const endpoint=(payload.config?.endpointUrl||'').trim();
+      const secret=(payload.config?.endpointSecret||'').trim();
+      if(!endpoint||!secret){$('#voteStatus').textContent='⚠️ Esta sesión está mal configurada. Informa a tu profesor.';return;}
+      const records=scores.map(s=>({sessionId:payload.sessionId,sessionLabel:payload.config?.sessionLabel||'',groupId,grader:keepName?me:'',graderHash,recipient:s.name,grade:s.grade,submittedAt:new Date().toISOString()}));
+
+      try{
+        const resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({
+          secret,
+          sessionId:payload.sessionId,
+          sessionLabel:payload.config?.sessionLabel||'',
+          groupId,
+          grader:keepName?me:'',
+          graderHash,
+          records
+        })});
+        let okFlag=true;
+        try{
+          const data=await resp.json();
+          okFlag = !!data.ok;
+        }catch(e){}
+        if(!okFlag) throw new Error('Server returned error');
+        $('#voteStatus').textContent='✅ Enviado de forma segura. Puedes cerrar esta pestaña.';
+        $$('#gradeList input').forEach(i=>i.value='');
+        return;
+      }catch(e){
+        console.warn('POST failed',e);
+        $('#voteStatus').textContent='⚠️ Problema de red — el envío falló. Intenta de nuevo más tarde.';
+        return;
+      }
+    });
+  }
+
+  function setModeBadge(){const mode=new URLSearchParams(location.hash.replace('#','')).get('mode');$('#modeName').textContent=(mode==='vote')?'Estudiante':'Administrador';}
+  setModeBadge();
+  (async function init(){const hash=new URLSearchParams(location.hash.replace('#',''));if(hash.get('mode')==='vote'){const data=hash.get('data');const payload=decodeSession(data||'');if(!payload){alert('Datos de sesión inválidos o faltantes en el enlace. Pide a tu profesor un nuevo enlace.');return;}await enterVoteMode(payload);return;}$('#adminView').classList.remove('hide');})();
+  </script>
+</body>
+</html>
